@@ -9,7 +9,6 @@ function DocumentViewer({ document, content, highlightedSection, signatures, cur
   // Scroll to highlighted section when it changes
   useEffect(() => {
     if (highlightedSection && editorRef.current) {
-      const text = editorRef.current.textContent;
       let searchText = '';
       
       if (highlightedSection === 'section_8') {
@@ -21,32 +20,36 @@ function DocumentViewer({ document, content, highlightedSection, signatures, cur
       }
       
       if (searchText) {
-        const range = document.createRange();
-        const selection = window.getSelection();
-        const walker = document.createTreeWalker(
-          editorRef.current,
-          NodeFilter.SHOW_TEXT,
-          null,
-          false
-        );
-        
-        let node;
-        while ((node = walker.nextNode())) {
-          const index = node.textContent.indexOf(searchText);
-          if (index !== -1) {
-            range.setStart(node, index);
-            range.setEnd(node, index + searchText.length);
-            selection.removeAllRanges();
-            selection.addRange(range);
-            
-            // Scroll into view
-            const rect = range.getBoundingClientRect();
-            const container = containerRef.current;
-            if (container) {
-              container.scrollTop += rect.top - container.getBoundingClientRect().top - 100;
+        try {
+          const range = window.document.createRange();
+          const selection = window.getSelection();
+          const walker = window.document.createTreeWalker(
+            editorRef.current,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+          );
+          
+          let node;
+          while ((node = walker.nextNode())) {
+            const index = node.textContent.indexOf(searchText);
+            if (index !== -1) {
+              range.setStart(node, index);
+              range.setEnd(node, index + searchText.length);
+              selection.removeAllRanges();
+              selection.addRange(range);
+              
+              // Scroll into view
+              const rect = range.getBoundingClientRect();
+              const container = containerRef.current;
+              if (container) {
+                container.scrollTop += rect.top - container.getBoundingClientRect().top - 100;
+              }
+              break;
             }
-            break;
           }
+        } catch (error) {
+          console.error('Error highlighting section:', error);
         }
       }
     }
