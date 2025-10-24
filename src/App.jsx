@@ -9,7 +9,7 @@ function App() {
     {
       id: 'msg_welcome',
       sender: 'ai',
-      content: "Hi! I'm your Contract Assistant. I can help you review this Software Services Agreement, check approval status, analyze risks, and prepare it for signature. What would you like to do first?",
+      content: "👋 Welcome to the AI-Spawned UI Demo!\n\nThis demonstrates how AI can dynamically generate the perfect interface for your task - no menus, no navigation needed.\n\nIn a real application, you'd chat naturally with me. For this demo, here are 3 examples of UI I can spawn. Click them to explore:",
       timestamp: new Date().toISOString()
     }
   ]);
