@@ -96,7 +96,7 @@ function DocumentViewer({ document, content, highlightedSection, signatures, cur
       </div>
 
       {/* Document Content - Fully Editable */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto scrollbar-thin">
+      <div ref={containerRef} className="flex-1 overflow-y-auto scrollbar-thin bg-gray-50">
         <div
           ref={(el) => {
             editorRef.current = el;
@@ -111,9 +111,13 @@ function DocumentViewer({ document, content, highlightedSection, signatures, cur
             const textContent = e.currentTarget.innerText || e.currentTarget.textContent;
             onDocumentClick({ content: textContent });
           }}
-          className="w-full min-h-full px-8 py-6 bg-white focus:outline-none font-mono text-sm leading-relaxed whitespace-pre-wrap"
+          className="w-full min-h-full px-16 py-12 bg-white focus:outline-none leading-relaxed whitespace-pre-wrap max-w-3xl mx-auto shadow-sm"
           style={{ 
             cursor: cursorPosition ? 'crosshair' : 'text',
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontSize: '14px',
+            color: '#1f2937',
+            lineHeight: '1.8',
             '::selection': {
               backgroundColor: highlightedSection ? '#fef3c7' : undefined
             }

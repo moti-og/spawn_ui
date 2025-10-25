@@ -45,9 +45,12 @@ function App() {
     const selection = window.getSelection();
     if (selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const currentText = editor.textContent || '';
       
-      // Find position in text
+      // Use innerText instead of textContent to better preserve line breaks
+      // But work from the state to preserve original formatting
+      const currentText = documentContent;
+      
+      // Find position in text by comparing with what's displayed
       const preCaretRange = range.cloneRange();
       preCaretRange.selectNodeContents(editor);
       preCaretRange.setEnd(range.endContainer, range.endOffset);
@@ -56,7 +59,18 @@ function App() {
       const newContent = currentText.substring(0, cursorPos) + '\n' + signatureText + '\n' + currentText.substring(cursorPos);
       setDocumentContent(newContent);
       
-      setTimeout(() => editor.focus(), 0);
+      setTimeout(() => {
+        if (editor) {
+          editor.focus();
+          // Move cursor to end of inserted signature
+          const newRange = document.createRange();
+          const sel = window.getSelection();
+          newRange.selectNodeContents(editor);
+          newRange.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        }
+      }, 50);
     }
     
     addMessage({
