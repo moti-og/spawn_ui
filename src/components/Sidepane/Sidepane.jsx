@@ -8,13 +8,16 @@ function Sidepane({
   signatures,
   cursorPosition,
   isCheckedIn,
+  isHumanChat,
+  humanChatName,
   onSendMessage, 
   onSpawnComponent,
   onUpdateApproval,
   onScrollToSection,
   onUpdateDocument,
   onAddSignature,
-  onCheckInOut
+  onCheckInOut,
+  onToggleHumanChat
 }) {
   return (
     <div className="h-full flex flex-col bg-white border-l border-gray-200">
@@ -25,7 +28,11 @@ function Sidepane({
         onSpawnComponent={onSpawnComponent}
         actionsOnly={true}
         isCheckedIn={isCheckedIn}
+        isHumanChat={isHumanChat}
+        humanChatName={humanChatName}
+        activeComponent={activeComponent}
         onCheckInOut={onCheckInOut}
+        onToggleHumanChat={onToggleHumanChat}
       />
 
       {/* Chat Messages OR Dynamic UI - Completely replaces each other */}
@@ -37,6 +44,8 @@ function Sidepane({
             signatures={signatures}
             cursorPosition={cursorPosition}
             isCheckedIn={isCheckedIn}
+            isHumanChat={isHumanChat}
+            humanChatName={humanChatName}
             onUpdateApproval={onUpdateApproval}
             onScrollToSection={onScrollToSection}
             onUpdateDocument={onUpdateDocument}
@@ -44,6 +53,7 @@ function Sidepane({
             onSpawnComponent={onSpawnComponent}
             onSendMessage={onSendMessage}
             onCheckInOut={onCheckInOut}
+            onToggleHumanChat={onToggleHumanChat}
           />
         ) : (
           <ChatInterface 
@@ -52,7 +62,10 @@ function Sidepane({
             onSpawnComponent={onSpawnComponent}
             messagesOnly={true}
             isCheckedIn={isCheckedIn}
+            isHumanChat={isHumanChat}
+            humanChatName={humanChatName}
             onCheckInOut={onCheckInOut}
+            onToggleHumanChat={onToggleHumanChat}
           />
         )}
       </div>
@@ -64,7 +77,10 @@ function Sidepane({
         onSpawnComponent={onSpawnComponent}
         inputOnly={true}
         isCheckedIn={isCheckedIn}
+        isHumanChat={isHumanChat}
+        humanChatName={humanChatName}
         onCheckInOut={onCheckInOut}
+        onToggleHumanChat={onToggleHumanChat}
       />
     </div>
   );

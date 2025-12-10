@@ -1,7 +1,37 @@
-import { CheckSquare, AlertTriangle, PenTool, LogIn, LogOut, History } from 'lucide-react';
+import { CheckSquare, AlertTriangle, PenTool, LogIn, LogOut, History, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
 
-function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn, onCheckInOut }) {
+function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn, isHumanChat, humanChatName, onCheckInOut, onToggleHumanChat }) {
+  const pendingHumanChatActivation = useRef(false);
+
+  // Handle human chat activation when name becomes available
+  useEffect(() => {
+    if (pendingHumanChatActivation.current && isHumanChat && humanChatName) {
+      pendingHumanChatActivation.current = false;
+      onSpawnComponent(null);
+      
+      // Step 1: AI message "Getting a human" - explicitly mark as AI, not human
+      setTimeout(() => {
+        onSendMessage({
+          sender: 'ai',
+          content: 'Getting a human...',
+          isHumanChatMessage: false  // Explicitly mark as AI message
+        });
+        
+        // Step 2: Switching line and hello message
+        setTimeout(() => {
+          onSendMessage({
+            sender: 'ai',
+            content: `Hi, I'm ${humanChatName}, how can I help?`,
+            isHumanChatMessage: true,
+            isModeTransition: true,
+            humanChatName: humanChatName
+          });
+        }, 800);
+      }, 800);
+    }
+  }, [isHumanChat, humanChatName, onSendMessage, onSpawnComponent]);
   const handleAction = (actionType) => {
     let userMessage = '';
     
@@ -51,6 +81,32 @@ function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn, onCheckInOut
                 : '✅ Document checked in! The document is now available for others to edit.'
             });
           }, 500);
+        }
+        break;
+      case 'humanchat':
+        // Toggle human chat state
+        if (onToggleHumanChat) {
+          const newHumanChatState = !isHumanChat;
+          onToggleHumanChat(newHumanChatState);
+          
+          if (newHumanChatState) {
+            // Mark that we're waiting for human chat activation
+            pendingHumanChatActivation.current = true;
+            // The useEffect will handle sending messages when name is available
+          } else {
+            // Returning to AI chat mode
+            onSpawnComponent(null);
+            pendingHumanChatActivation.current = false;
+            // Step 1: Switching line - explicitly mark as NOT human chat
+            setTimeout(() => {
+              onSendMessage({
+                sender: 'ai',
+                content: "I'm back and ready to help",
+                isModeTransition: true,
+                isHumanChatMessage: false  // Explicitly mark as AI message
+              });
+            }, 300);
+          }
         }
         break;
     }
@@ -111,6 +167,17 @@ function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn, onCheckInOut
       borderColor: isCheckedIn ? 'border-red-200' : 'border-blue-200',
       textColor: isCheckedIn ? 'text-red-700' : 'text-blue-700',
       iconColor: isCheckedIn ? 'text-red-600' : 'text-blue-600'
+    },
+    {
+      id: 'humanchat',
+      icon: MessageCircle,
+      title: isHumanChat ? 'Chat with AI' : (humanChatName ? `Chat with ${humanChatName}` : 'Chat with Human'),
+      description: isHumanChat ? 'Return to AI chat' : 'Connect with a human agent',
+      bgColor: isHumanChat ? 'bg-blue-50' : 'bg-purple-50',
+      hoverColor: isHumanChat ? 'hover:bg-blue-100' : 'hover:bg-purple-100',
+      borderColor: isHumanChat ? 'border-blue-200' : 'border-purple-200',
+      textColor: isHumanChat ? 'text-blue-700' : 'text-purple-700',
+      iconColor: isHumanChat ? 'text-blue-600' : 'text-purple-600'
     }
   ];
 

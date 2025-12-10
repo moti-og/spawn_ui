@@ -1,13 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, CheckSquare, AlertTriangle, PenTool, LogIn, LogOut, Grid, History, ArrowUp } from 'lucide-react';
+import { Send, Bot, CheckSquare, AlertTriangle, PenTool, LogIn, LogOut, Grid, History, ArrowUp, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { matchQuery } from '../../data/cannedResponses';
 import { getRandomDadJoke } from '../../data/dadJokes';
 
-function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly = false, messagesOnly = false, inputOnly = false, isCheckedIn = false, onCheckInOut }) {
+function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly = false, messagesOnly = false, inputOnly = false, isCheckedIn = false, isHumanChat = false, humanChatName = null, activeComponent = null, onCheckInOut, onToggleHumanChat }) {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [gifKey, setGifKey] = useState(Date.now()); // Key to force GIF reload
   const messagesEndRef = useRef(null);
+  const pendingHumanChatActivation = useRef(false);
+  const gifTimerRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -16,6 +19,68 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
+
+  // Handle human chat activation when name becomes available
+  useEffect(() => {
+    if (pendingHumanChatActivation.current && isHumanChat && humanChatName) {
+      pendingHumanChatActivation.current = false;
+      onSpawnComponent(null);
+      
+      // Step 1: AI message "Getting a human" - explicitly mark as AI, not human
+      setIsTyping(true);
+      setTimeout(() => {
+        setIsTyping(false);
+        onSendMessage({
+          sender: 'ai',
+          content: 'Getting a human...',
+          isHumanChatMessage: false  // Explicitly mark as AI message
+        });
+        
+        // Step 2: Switching line and hello message
+        setTimeout(() => {
+          onSendMessage({
+            sender: 'ai',
+            content: `Hi, I'm ${humanChatName}, how can I help?`,
+            isHumanChatMessage: true,
+            isModeTransition: true,
+            humanChatName: humanChatName
+          });
+        }, 800);
+      }, 800);
+    }
+  }, [isHumanChat, humanChatName, onSendMessage, onSpawnComponent]);
+
+  // Handle GIF activation timer - activates randomly every 10-30 seconds
+  useEffect(() => {
+    if (actionsOnly && isHumanChat) {
+      const scheduleNextActivation = () => {
+        // Random delay between 10-30 seconds
+        const delay = Math.floor(Math.random() * 20000) + 10000;
+        gifTimerRef.current = setTimeout(() => {
+          // Reload the GIF by changing its key
+          setGifKey(Date.now());
+          // Schedule next activation
+          scheduleNextActivation();
+        }, delay);
+      };
+
+      // Start the first activation immediately, then schedule subsequent ones
+      setGifKey(Date.now());
+      scheduleNextActivation();
+
+      return () => {
+        if (gifTimerRef.current) {
+          clearTimeout(gifTimerRef.current);
+        }
+      };
+    } else {
+      // Clear timer when human chat is disabled
+      if (gifTimerRef.current) {
+        clearTimeout(gifTimerRef.current);
+        gifTimerRef.current = null;
+      }
+    }
+  }, [actionsOnly, isHumanChat]);
 
   const handleQuickAction = (actionType) => {
     let userMessage = '';
@@ -36,6 +101,32 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
       case 'versionhistory':
         userMessage = 'Show version history';
         break;
+      case 'humanchat':
+        // Toggle human chat state
+        if (onToggleHumanChat) {
+          const newHumanChatState = !isHumanChat;
+          onToggleHumanChat(newHumanChatState);
+          
+          if (newHumanChatState) {
+            // Mark that we're waiting for human chat activation
+            pendingHumanChatActivation.current = true;
+            // The useEffect will handle sending messages when name is available
+          } else {
+            // Returning to AI chat mode
+            onSpawnComponent(null);
+            pendingHumanChatActivation.current = false;
+            // Step 1: Switching line - explicitly mark as NOT human chat
+            setTimeout(() => {
+              onSendMessage({
+                sender: 'ai',
+                content: "I'm back and ready to help",
+                isModeTransition: true,
+                isHumanChatMessage: false  // Explicitly mark as AI message
+              });
+            }, 300);
+          }
+        }
+        return;
       case 'showallactions':
         // Directly spawn the component without sending a message
         onSpawnComponent('AllActions');
@@ -120,15 +211,15 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
     setTimeout(() => {
       setIsTyping(false);
       
-      // Add AI response
-      onSendMessage({
-        sender: 'ai',
-        content: match.response,
-        showButtonPreview: match.showButtonPreview || false
-      });
-
-      // If it's a default response, send a joke in a second message
-      if (match.includeJoke) {
+      // Check if this is a default response in human chat mode - use different message
+      if (isHumanChat && match.type === 'default') {
+        // Human chat default response
+        onSendMessage({
+          sender: 'ai',
+          content: "I'm not actually a human but how about a better joke than AI can provide?"
+        });
+        
+        // Send joke in second message
         setTimeout(() => {
           setIsTyping(true);
           setTimeout(() => {
@@ -139,16 +230,37 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
             });
           }, 800);
         }, 500);
-      }
+      } else {
+        // Regular AI response
+        onSendMessage({
+          sender: 'ai',
+          content: match.response,
+          showButtonPreview: match.showButtonPreview || false
+        });
 
-      // Spawn component if needed
-      if (match.spawnComponent) {
-        setTimeout(() => {
-          onSpawnComponent(match.spawnComponent);
-        }, 300);
-      } else if (match.highlightSection) {
-        // Just highlight a section without spawning a component
-        onSpawnComponent('Highlight', { sectionId: match.highlightSection });
+        // If it's a default response, send a joke in a second message
+        if (match.includeJoke) {
+          setTimeout(() => {
+            setIsTyping(true);
+            setTimeout(() => {
+              setIsTyping(false);
+              onSendMessage({
+                sender: 'ai',
+                content: `But in the meantime...let's have some fun!\n\n${getRandomDadJoke()}`
+              });
+            }, 800);
+          }, 500);
+        }
+
+        // Spawn component if needed
+        if (match.spawnComponent) {
+          setTimeout(() => {
+            onSpawnComponent(match.spawnComponent);
+          }, 300);
+        } else if (match.highlightSection) {
+          // Just highlight a section without spawning a component
+          onSpawnComponent('Highlight', { sectionId: match.highlightSection });
+        }
       }
     }, 1000 + Math.random() * 500);
   };
@@ -165,41 +277,31 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
     return (
       <div className="flex-shrink-0 border-b border-gray-200 bg-gray-50">
         {/* Show All Actions - Full Width */}
-          <div className="p-4 border-b border-gray-200">
-            <button
-              onClick={() => handleQuickAction('showallactions')}
-              className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-semibold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-            >
-              <Grid className="w-5 h-5" />
-              <span>Show All Actions</span>
-            </button>
-          </div>
+        <div className="p-4 border-b border-gray-200">
+          <button
+            onClick={() => handleQuickAction('showallactions')}
+            className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-semibold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+          >
+            <Grid className="w-5 h-5" />
+            <span>Show All Actions</span>
+          </button>
+        </div>
 
-          {/* Suggested Actions - Smaller buttons below */}
-          <div className="px-4 py-3">
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500 px-2 text-center">Suggested actions:</p>
-              <div className="flex flex-wrap gap-2 justify-center">
+        {/* Suggested Actions with Video - Flex container (hide when AllActions is active) */}
+        {activeComponent?.type !== 'AllActions' && (
+        <div className="flex">
+          {/* Left side - Suggested Actions */}
+          <div className="flex-1">
+            <div className="px-4 py-3">
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500 px-2 text-center">Suggested actions:</p>
+                <div className="flex flex-wrap gap-2 justify-center">
                 <button
                   onClick={() => handleQuickAction('approval')}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-full text-xs font-medium text-indigo-700 transition-colors"
                 >
                   <CheckSquare className="w-3.5 h-3.5" />
                   <span>Approvals</span>
-                </button>
-                <button
-                  onClick={() => handleQuickAction('risk')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-full text-xs font-medium text-orange-700 transition-colors"
-                >
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Risk Analysis</span>
-                </button>
-                <button
-                  onClick={() => handleQuickAction('signature')}
-                  className="inline-flex items-center gap-1.5 bg-green-50 hover:bg-green-100 border border-green-200 rounded-full text-xs font-medium text-green-700 transition-colors px-3 py-1.5"
-                >
-                  <PenTool className="w-3.5 h-3.5" />
-                  <span>Sign</span>
                 </button>
                 <button
                   onClick={() => handleQuickAction('versionhistory')}
@@ -228,9 +330,35 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
                     </>
                   )}
                 </button>
+                <button
+                  onClick={() => handleQuickAction('humanchat')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-full text-xs font-medium transition-colors ${
+                    isHumanChat
+                      ? 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700'
+                      : 'bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700'
+                  }`}
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>{isHumanChat ? 'Chat with AI' : (humanChatName ? `Chat with ${humanChatName}` : 'Chat with Human')}</span>
+                </button>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Right side - GIF (only when human chat is active) */}
+          {isHumanChat && (
+            <div className="flex-shrink-0 border-l border-gray-200 px-2 py-2 flex items-center justify-center">
+              <img
+                key={gifKey}
+                src={`/gandalf.gif?t=${gifKey}`}
+                alt="Human agent"
+                className="max-w-[60px] max-h-[60px] rounded-lg object-contain"
+              />
+            </div>
+          )}
+        </div>
+        )}
       </div>
     );
   }
@@ -270,41 +398,71 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
         </div>
       ) : (
         <>
-          {messages.map((message) => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[85%] rounded-lg px-4 py-2.5 ${
-                  message.sender === 'user'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-900 border border-gray-200'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                {message.showButtonPreview && (
-                  <div className="mt-3 flex flex-col items-center gap-2">
-                    <div className="opacity-50 scale-75 origin-center">
-                      <button
-                        className="w-full py-2 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold text-xs shadow-md flex items-center justify-center gap-2 pointer-events-none"
-                      >
-                        <Grid className="w-4 h-4" />
-                        <span>Show All Actions</span>
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <span>Don't click here, go up to the top</span>
-                      <ArrowUp className="w-3 h-3" />
-                    </div>
+          {messages.map((message, index) => {
+            // Always show name above human chat messages
+            const showName = message.isHumanChatMessage && message.humanChatName;
+            
+            // Check if this is a mode transition (switching between human and AI) - only show when explicitly toggling modes
+            const isModeTransition = message.isModeTransition;
+            
+            return (
+            <div key={message.id}>
+              {/* Mode transition divider */}
+              {isModeTransition && (
+                <div className="flex items-center my-4">
+                  <div className="flex-1 border-t border-gray-300"></div>
+                  <div className="px-3 py-1 bg-gray-100 rounded-full">
+                    <span className="text-xs text-gray-600 font-medium">
+                      {message.isHumanChatMessage ? (message.humanChatName ? `Switching to Chat with ${message.humanChatName}` : 'Switching to Chat with Human') : 'Switching to Chat with AI'}
+                    </span>
                   </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
+                  <div className="flex-1 border-t border-gray-300"></div>
+                </div>
+              )}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className="max-w-[85%]">
+                  {showName && message.humanChatName && (
+                    <p className="text-xs text-blue-600 font-semibold mb-1 px-1">
+                      {message.humanChatName}
+                    </p>
+                  )}
+                  <div
+                    className={`rounded-lg px-4 py-2.5 ${
+                      message.isHumanChatMessage
+                        ? 'bg-blue-50 text-blue-900 border-2 border-blue-300 font-medium'
+                        : message.sender === 'user'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-900 border border-gray-200'
+                    }`}
+                  >
+                    <p className={`text-sm whitespace-pre-wrap ${message.isHumanChatMessage ? 'font-semibold' : ''}`}>{message.content}</p>
+                    {message.showButtonPreview && (
+                      <div className="mt-3 flex flex-col items-center gap-2">
+                        <div className="opacity-50 scale-75 origin-center">
+                          <button
+                            className="w-full py-2 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold text-xs shadow-md flex items-center justify-center gap-2 pointer-events-none"
+                          >
+                            <Grid className="w-4 h-4" />
+                            <span>Show All Actions</span>
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <span>Don't click here, go up to the top</span>
+                          <ArrowUp className="w-3 h-3" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          );
+          })}
           
           {isTyping && (
             <motion.div

@@ -27,13 +27,36 @@ function App() {
   const [signatures, setSignatures] = useState([]);
   const [cursorPosition, setCursorPosition] = useState(null);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [isHumanChat, setIsHumanChat] = useState(false);
+  const [humanChatName, setHumanChatName] = useState(null);
+
+  const getHumanName = () => 'Gandalf';
 
   const addMessage = (message) => {
-    setMessages(prev => [...prev, {
+    // If in human chat mode and message is from AI, mark it as human chat message
+    // But only if isHumanChatMessage wasn't explicitly set (undefined vs false)
+    const shouldMarkAsHumanChat = isHumanChat && message.sender === 'ai' && message.isHumanChatMessage === undefined;
+    const finalMessage = {
       ...message,
       id: `msg_${Date.now()}`,
-      timestamp: new Date().toISOString()
-    }]);
+      timestamp: new Date().toISOString(),
+      ...(shouldMarkAsHumanChat ? { 
+        isHumanChatMessage: true, 
+        humanChatName: humanChatName
+      } : {})
+    };
+    setMessages(prev => [...prev, finalMessage]);
+  };
+
+  const handleToggleHumanChat = (newState) => {
+    setIsHumanChat(newState);
+    if (newState) {
+      // Set human agent name
+      setHumanChatName(getHumanName());
+    } else {
+      // Clear the name when switching back to AI chat
+      setHumanChatName(null);
+    }
   };
 
   const spawnComponent = (componentType, data = null) => {
@@ -125,7 +148,7 @@ function App() {
         <div className="bg-amber-50 border-t border-amber-200 py-2 px-6">
           <div className="flex items-center justify-center">
             <span className="inline-flex items-center gap-2 text-sm font-medium text-amber-700">
-              ℹ️ This is a demo to illustrate a concept
+              This is a concept...How MIGHT we do things differently?
             </span>
           </div>
         </div>
@@ -156,6 +179,8 @@ function App() {
             signatures={signatures}
             cursorPosition={cursorPosition}
             isCheckedIn={isCheckedIn}
+            isHumanChat={isHumanChat}
+            humanChatName={humanChatName}
             onSendMessage={addMessage}
             onSpawnComponent={spawnComponent}
             onUpdateApproval={setApprovalWorkflow}
@@ -163,6 +188,7 @@ function App() {
             onUpdateDocument={updateDocument}
             onAddSignature={onAddSignature}
             onCheckInOut={setIsCheckedIn}
+            onToggleHumanChat={handleToggleHumanChat}
           />
         </div>
       </div>

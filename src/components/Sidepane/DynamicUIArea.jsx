@@ -12,13 +12,16 @@ function DynamicUIArea({
   signatures,
   cursorPosition,
   isCheckedIn,
+  isHumanChat,
+  humanChatName,
   onUpdateApproval,
   onScrollToSection,
   onUpdateDocument,
   onAddSignature,
   onSpawnComponent,
   onSendMessage,
-  onCheckInOut
+  onCheckInOut,
+  onToggleHumanChat
 }) {
   const handleClose = () => {
     onSpawnComponent(null);
@@ -66,7 +69,10 @@ function DynamicUIArea({
             onSpawnComponent={onSpawnComponent}
             onSendMessage={onSendMessage}
             isCheckedIn={isCheckedIn}
+            isHumanChat={isHumanChat}
+            humanChatName={humanChatName}
             onCheckInOut={onCheckInOut}
+            onToggleHumanChat={onToggleHumanChat}
           />
         );
       
