@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ApprovalWorkflow from '../SpawnedUI/ApprovalWorkflow';
 import RiskAnalysisReport from '../SpawnedUI/RiskAnalysisReport';
 import SignatureWizard from '../SpawnedUI/SignatureWizard';
+import AllActions from '../SpawnedUI/AllActions';
 import { Sparkles, X } from 'lucide-react';
 
 function DynamicUIArea({ 
@@ -9,6 +10,7 @@ function DynamicUIArea({
   approvalWorkflow,
   signatures,
   cursorPosition,
+  isCheckedIn,
   onUpdateApproval,
   onScrollToSection,
   onUpdateDocument,
@@ -61,6 +63,15 @@ function DynamicUIArea({
             cursorPosition={cursorPosition}
             onAddSignature={onAddSignature}
             onSendMessage={onSendMessage}
+          />
+        );
+      
+      case 'AllActions':
+        return (
+          <AllActions 
+            onSpawnComponent={onSpawnComponent}
+            onSendMessage={onSendMessage}
+            isCheckedIn={isCheckedIn}
           />
         );
       

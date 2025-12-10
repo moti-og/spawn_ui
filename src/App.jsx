@@ -20,6 +20,7 @@ function App() {
   const [documentContent, setDocumentContent] = useState(sampleDocument.content);
   const [signatures, setSignatures] = useState([]);
   const [cursorPosition, setCursorPosition] = useState(null);
+  const [isCheckedIn, setIsCheckedIn] = useState(false);
 
   const addMessage = (message) => {
     setMessages(prev => [...prev, {
@@ -143,6 +144,7 @@ function App() {
             cursorPosition={activeComponent?.type === 'SignatureWizard'}
             onHighlightClear={() => setHighlightedSection(null)}
             onDocumentClick={handleDocumentChange}
+            isCheckedIn={isCheckedIn}
           />
         </div>
 
@@ -154,12 +156,14 @@ function App() {
             approvalWorkflow={approvalWorkflow}
             signatures={signatures}
             cursorPosition={cursorPosition}
+            isCheckedIn={isCheckedIn}
             onSendMessage={addMessage}
             onSpawnComponent={spawnComponent}
             onUpdateApproval={setApprovalWorkflow}
             onScrollToSection={scrollToSection}
             onUpdateDocument={updateDocument}
             onAddSignature={onAddSignature}
+            onCheckInOut={setIsCheckedIn}
           />
         </div>
       </div>

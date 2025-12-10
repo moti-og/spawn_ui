@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { FileText } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
-function DocumentViewer({ document, content, highlightedSection, signatures, cursorPosition, onHighlightClear, onDocumentClick }) {
+function DocumentViewer({ document, content, highlightedSection, signatures, cursorPosition, onHighlightClear, onDocumentClick, isCheckedIn = false }) {
   const editorRef = useRef(null);
   const containerRef = useRef(null);
   
@@ -71,32 +71,21 @@ function DocumentViewer({ document, content, highlightedSection, signatures, cur
 
   return (
     <div className="h-full flex flex-col">
-      {/* Document Header */}
-      <div className="px-6 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-gray-600" />
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">{document.title}</h2>
-              <p className="text-xs text-gray-500">Last modified: October 20, 2025 at 8:34am PST</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-1 bg-gray-800 text-white text-xs rounded font-medium">Draft</span>
-          {highlightedSection && (
-            <button
-              onClick={onHighlightClear}
-              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-            >
-              Clear Highlight
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Document Content - Fully Editable */}
       <div ref={containerRef} className="flex-1 overflow-y-auto scrollbar-thin bg-gray-50">
+        {/* Checked Out Banner */}
+        {isCheckedIn && (
+          <div className="sticky top-0 z-10 bg-red-500 text-white px-6 py-3 shadow-md">
+            <div className="max-w-3xl mx-auto flex items-center gap-3">
+              <span className="text-lg">🔒</span>
+              <div>
+                <p className="font-semibold">Document checked out by You</p>
+                <p className="text-sm text-red-100">Others cannot edit this document while you have it checked out</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div
           ref={(el) => {
             editorRef.current = el;
