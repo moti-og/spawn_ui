@@ -38,8 +38,10 @@ export const cannedResponses = {
   }
 };
 
+import { getRandomDadJoke } from './dadJokes';
+
 export const defaultResponse = {
-  response: "I can help you with:\n• Approval workflows and status\n• Risk analysis of contract clauses\n• Signature block placement\n• Document summaries and reviews\n\nWhat would you like to know?",
+  response: `I'm not sure how to help with that, but here's a joke for you:\n\n${getRandomDadJoke()}`,
   spawnComponent: null
 };
 
