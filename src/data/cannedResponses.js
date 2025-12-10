@@ -30,6 +30,11 @@ export const cannedResponses = {
     keywords: ['summarize', 'summary', 'what is this', 'overview'],
     response: "This is a Software Services Agreement between ACME Technology Inc. (Provider) and Innovate Solutions LLC (Client). It covers software development services with a 2-year term, Net 30 payment terms, standard IP assignment, confidentiality provisions, and mutual indemnification with a $100k cap. The agreement requires approvals from Legal, Finance, and Executive before client signature.",
     spawnComponent: null
+  },
+  versionhistory: {
+    keywords: ['version', 'history', 'previous', 'versions', 'revision', 'revisions', 'show version history'],
+    response: "Here's the complete version history for this document. You can click any version to view or restore it.",
+    spawnComponent: 'VersionHistory'
   }
 };
 

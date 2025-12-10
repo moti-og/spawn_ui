@@ -1,4 +1,4 @@
-import { CheckSquare, AlertTriangle, PenTool, LogIn, LogOut } from 'lucide-react';
+import { CheckSquare, AlertTriangle, PenTool, LogIn, LogOut, History } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn }) {
@@ -25,6 +25,13 @@ function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn }) {
         onSendMessage({ sender: 'user', content: userMessage });
         setTimeout(() => {
           onSpawnComponent('SignatureWizard');
+        }, 500);
+        break;
+      case 'versionhistory':
+        userMessage = 'Show version history';
+        onSendMessage({ sender: 'user', content: userMessage });
+        setTimeout(() => {
+          onSpawnComponent('VersionHistory');
         }, 500);
         break;
       case 'checkin':
@@ -69,6 +76,17 @@ function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn }) {
       iconColor: 'text-green-600'
     },
     {
+      id: 'versionhistory',
+      icon: History,
+      title: 'Version History',
+      description: 'View previous versions',
+      bgColor: 'bg-teal-50',
+      hoverColor: 'hover:bg-teal-100',
+      borderColor: 'border-teal-200',
+      textColor: 'text-teal-700',
+      iconColor: 'text-teal-600'
+    },
+    {
       id: 'checkin',
       icon: isCheckedIn ? LogIn : LogOut,
       title: isCheckedIn ? 'Check In Document' : 'Check Out Document',
@@ -88,7 +106,7 @@ function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn }) {
         <p className="text-sm text-gray-600">Select an action to perform on this document</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {actions.map((action, index) => {
           const Icon = action.icon;
           return (

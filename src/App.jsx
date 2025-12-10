@@ -9,11 +9,17 @@ function App() {
     {
       id: 'msg_welcome',
       sender: 'ai',
-      content: "👋 Welcome to the AI-Spawned UI Demo!\n\nThis demonstrates how AI can dynamically generate the perfect interface for your task - no menus, no navigation needed.\n\nIn a real application, you'd chat naturally with me. For this demo, here are 3 examples of UI I can spawn. Click them to explore:",
+      content: "Hello! 👋 Talk to me and tell me to do things.",
       timestamp: new Date().toISOString()
+    },
+    {
+      id: 'msg_help',
+      sender: 'ai',
+      content: "Don't know what to do? Click the 'Show All Actions' button.",
+      timestamp: new Date().toISOString(),
+      showButtonPreview: true
     }
   ]);
-  
   const [activeComponent, setActiveComponent] = useState(null);
   const [highlightedSection, setHighlightedSection] = useState(null);
   const [approvalWorkflow, setApprovalWorkflow] = useState(initialApprovalWorkflow);
@@ -31,7 +37,11 @@ function App() {
   };
 
   const spawnComponent = (componentType, data = null) => {
-    setActiveComponent({ type: componentType, data });
+    if (componentType === null) {
+      setActiveComponent(null);
+    } else {
+      setActiveComponent({ type: componentType, data });
+    }
   };
 
   const onAddSignature = (sig) => {
@@ -92,8 +102,14 @@ function App() {
     }
   };
 
-  const updateDocument = (oldText, newText) => {
-    setDocumentContent(prev => prev.replace(oldText, newText));
+  const updateDocument = (oldTextOrContent, newText) => {
+    // If newText is undefined, assume oldTextOrContent is the full new content
+    if (newText === undefined) {
+      setDocumentContent(oldTextOrContent);
+    } else {
+      // Otherwise, do a text replacement
+      setDocumentContent(prev => prev.replace(oldTextOrContent, newText));
+    }
   };
 
   return (
