@@ -43,6 +43,7 @@ function Sidepane({
             onAddSignature={onAddSignature}
             onSpawnComponent={onSpawnComponent}
             onSendMessage={onSendMessage}
+            onCheckInOut={onCheckInOut}
           />
         ) : (
           <ChatInterface 

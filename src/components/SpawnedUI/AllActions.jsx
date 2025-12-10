@@ -1,7 +1,7 @@
 import { CheckSquare, AlertTriangle, PenTool, LogIn, LogOut, History } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn }) {
+function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn, onCheckInOut }) {
   const handleAction = (actionType) => {
     let userMessage = '';
     
@@ -35,8 +35,23 @@ function AllActions({ onSpawnComponent, onSendMessage, isCheckedIn }) {
         }, 500);
         break;
       case 'checkin':
-        userMessage = isCheckedIn ? 'check in' : 'check out';
-        onSendMessage({ sender: 'user', content: userMessage });
+        // Toggle check in/out state
+        if (onCheckInOut) {
+          const newCheckedInState = !isCheckedIn;
+          onCheckInOut(newCheckedInState);
+          userMessage = newCheckedInState ? 'check out' : 'check in';
+          onSendMessage({ sender: 'user', content: userMessage });
+          
+          // Show confirmation message
+          setTimeout(() => {
+            onSendMessage({
+              sender: 'ai',
+              content: newCheckedInState 
+                ? '✅ Document checked out! You now have exclusive edit access. Others will see that you have the document checked out.'
+                : '✅ Document checked in! The document is now available for others to edit.'
+            });
+          }, 500);
+        }
         break;
     }
   };

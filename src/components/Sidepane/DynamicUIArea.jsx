@@ -17,7 +17,8 @@ function DynamicUIArea({
   onUpdateDocument,
   onAddSignature,
   onSpawnComponent,
-  onSendMessage
+  onSendMessage,
+  onCheckInOut
 }) {
   const handleClose = () => {
     onSpawnComponent(null);
@@ -65,6 +66,7 @@ function DynamicUIArea({
             onSpawnComponent={onSpawnComponent}
             onSendMessage={onSendMessage}
             isCheckedIn={isCheckedIn}
+            onCheckInOut={onCheckInOut}
           />
         );
       

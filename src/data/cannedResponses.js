@@ -41,8 +41,10 @@ export const cannedResponses = {
 import { getRandomDadJoke } from './dadJokes';
 
 export const defaultResponse = {
-  response: `I'm not sure how to help with that, but here's a joke for you:\n\n${getRandomDadJoke()}`,
-  spawnComponent: null
+  response: `I'm not able to help with that because you haven't turned on AI in your site settings. But you can always click on "Show All Actions" or try the following actions: Sign, Approvals, Risk Analysis, Versions, and Check In/Out.`,
+  spawnComponent: null,
+  showButtonPreview: true,
+  includeJoke: true
 };
 
 export function matchQuery(query) {

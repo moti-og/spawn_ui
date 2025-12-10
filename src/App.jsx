@@ -116,28 +116,11 @@ function App() {
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 flex-shrink-0">
-        <div className="px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded flex items-center justify-center">
-                <span className="text-white font-bold text-sm">OG</span>
-              </div>
-              <span className="text-lg font-semibold text-gray-900">OpenGov</span>
-            </div>
-            <nav className="flex items-center gap-1 text-sm">
-              <button className="px-3 py-1.5 text-indigo-600 font-medium bg-indigo-50 rounded">Procurement</button>
-              <button className="px-3 py-1.5 text-gray-600 hover:bg-gray-50 rounded">Requests</button>
-              <button className="px-3 py-1.5 text-gray-600 hover:bg-gray-50 rounded">Projects</button>
-              <button className="px-3 py-1.5 text-gray-600 hover:bg-gray-50 rounded">Contracts</button>
-              <button className="px-3 py-1.5 text-gray-600 hover:bg-gray-50 rounded">Vendors</button>
-            </nav>
-          </div>
-          <div className="flex items-center gap-3">
-            <button className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">
-              + Create
-            </button>
-          </div>
-        </div>
+        <img 
+          src="/procurement-navbar.png" 
+          alt="Procurement Navigation Bar" 
+          className="w-full h-auto"
+        />
         {/* Demo Banner - Full Width Centered */}
         <div className="bg-amber-50 border-t border-amber-200 py-2 px-6">
           <div className="flex items-center justify-center">

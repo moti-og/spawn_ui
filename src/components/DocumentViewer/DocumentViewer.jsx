@@ -70,18 +70,19 @@ function DocumentViewer({ document, content, highlightedSection, signatures, cur
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className={`h-full flex flex-col ${isCheckedIn ? 'border-2 border-red-200' : ''}`}>
       {/* Document Content - Fully Editable */}
       <div ref={containerRef} className="flex-1 overflow-y-auto scrollbar-thin bg-gray-50">
         {/* Checked Out Banner */}
         {isCheckedIn && (
           <div className="sticky top-0 z-10 bg-red-500 text-white px-6 py-3 shadow-md">
-            <div className="max-w-3xl mx-auto flex items-center gap-3">
+            <div className="max-w-3xl mx-auto flex items-center justify-center gap-3">
               <span className="text-lg">🔒</span>
-              <div>
+              <div className="text-center">
                 <p className="font-semibold">Document checked out by You</p>
                 <p className="text-sm text-red-100">Others cannot edit this document while you have it checked out</p>
               </div>
+              <span className="text-lg">🔒</span>
             </div>
           </div>
         )}

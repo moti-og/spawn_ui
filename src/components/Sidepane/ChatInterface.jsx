@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, CheckSquare, AlertTriangle, PenTool, LogIn, LogOut, Grid, History, ArrowUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { matchQuery } from '../../data/cannedResponses';
+import { getRandomDadJoke } from '../../data/dadJokes';
 
 function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly = false, messagesOnly = false, inputOnly = false, isCheckedIn = false, onCheckInOut }) {
   const [inputValue, setInputValue] = useState('');
@@ -122,8 +123,23 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
       // Add AI response
       onSendMessage({
         sender: 'ai',
-        content: match.response
+        content: match.response,
+        showButtonPreview: match.showButtonPreview || false
       });
+
+      // If it's a default response, send a joke in a second message
+      if (match.includeJoke) {
+        setTimeout(() => {
+          setIsTyping(true);
+          setTimeout(() => {
+            setIsTyping(false);
+            onSendMessage({
+              sender: 'ai',
+              content: getRandomDadJoke()
+            });
+          }, 800);
+        }, 500);
+      }
 
       // Spawn component if needed
       if (match.spawnComponent) {
@@ -162,35 +178,35 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
           {/* Suggested Actions - Smaller buttons below */}
           <div className="px-4 py-3">
             <div className="space-y-2">
-              <p className="text-xs text-gray-500 px-2">Suggested actions:</p>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-xs text-gray-500 px-2 text-center">Suggested actions:</p>
+              <div className="flex flex-wrap gap-2 justify-center">
                 <button
                   onClick={() => handleQuickAction('approval')}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-full text-xs font-medium text-indigo-700 transition-colors"
                 >
                   <CheckSquare className="w-3.5 h-3.5" />
-                  <span>Who has approved so far?</span>
+                  <span>Approvals</span>
                 </button>
                 <button
                   onClick={() => handleQuickAction('risk')}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-full text-xs font-medium text-orange-700 transition-colors"
                 >
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>What's high risk?</span>
+                  <span>Risk Analysis</span>
                 </button>
                 <button
                   onClick={() => handleQuickAction('signature')}
                   className="inline-flex items-center gap-1.5 bg-green-50 hover:bg-green-100 border border-green-200 rounded-full text-xs font-medium text-green-700 transition-colors px-3 py-1.5"
                 >
                   <PenTool className="w-3.5 h-3.5" />
-                  <span>Ready to sign</span>
+                  <span>Sign</span>
                 </button>
                 <button
                   onClick={() => handleQuickAction('versionhistory')}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-full text-xs font-medium text-teal-700 transition-colors"
                 >
                   <History className="w-3.5 h-3.5" />
-                  <span>Version History</span>
+                  <span>Versions</span>
                 </button>
                 <button
                   onClick={() => handleQuickAction('checkin')}
