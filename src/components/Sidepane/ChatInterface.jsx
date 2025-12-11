@@ -8,6 +8,7 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [gifKey, setGifKey] = useState(Date.now()); // Key to force GIF reload
+  const [pendingToolAction, setPendingToolAction] = useState(null); // Store pending tool activation
   const messagesEndRef = useRef(null);
   const pendingHumanChatActivation = useRef(false);
   const gifTimerRef = useRef(null);
@@ -252,14 +253,38 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
           }, 500);
         }
 
-        // Spawn component if needed
+        // Intelligent routing: Show confirmation before activating tools
         if (match.spawnComponent) {
+          // Store pending action and show confirmation
+          const toolNames = {
+            'ApprovalWorkflow': 'show the approval status',
+            'RiskAnalysisReport': 'analyze risks in the document',
+            'SignatureWizard': 'add signature blocks',
+            'VersionHistory': 'show version history'
+          };
+          const toolName = toolNames[match.spawnComponent] || 'perform this action';
+          
           setTimeout(() => {
-            onSpawnComponent(match.spawnComponent);
-          }, 300);
+            setIsTyping(true);
+            setTimeout(() => {
+              setIsTyping(false);
+              setPendingToolAction({
+                component: match.spawnComponent,
+                response: match.response
+              });
+              onSendMessage({
+                sender: 'ai',
+                content: `I can help you ${toolName}. Would you like me to proceed?`,
+                requiresConfirmation: true,
+                pendingAction: match.spawnComponent
+              });
+            }, 800);
+          }, 500);
         } else if (match.highlightSection) {
           // Just highlight a section without spawning a component
-          onSpawnComponent('Highlight', { sectionId: match.highlightSection });
+          setTimeout(() => {
+            onSpawnComponent('Highlight', { sectionId: match.highlightSection });
+          }, 300);
         }
       }
     }, 1000 + Math.random() * 500);
@@ -269,6 +294,61 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleConfirmTool = (messageId) => {
+    // Find the message with the pending action
+    const message = messages.find(m => m.id === messageId && m.requiresConfirmation);
+    if (message && message.pendingAction && pendingToolAction) {
+      // Clear pending action
+      setPendingToolAction(null);
+      
+      // Send confirmation message
+      onSendMessage({
+        sender: 'user',
+        content: 'Yes, proceed'
+      });
+      
+      // Activate the tool
+      setTimeout(() => {
+        setIsTyping(true);
+        setTimeout(() => {
+          setIsTyping(false);
+          onSendMessage({
+            sender: 'ai',
+            content: pendingToolAction.response || 'Activating...'
+          });
+          onSpawnComponent(pendingToolAction.component);
+        }, 800);
+      }, 300);
+    }
+  };
+
+  const handleCancelTool = (messageId) => {
+    // Find the message with the pending action
+    const message = messages.find(m => m.id === messageId && m.requiresConfirmation);
+    if (message) {
+      // Clear pending action
+      setPendingToolAction(null);
+      
+      // Send cancellation message
+      onSendMessage({
+        sender: 'user',
+        content: 'No, cancel'
+      });
+      
+      // Provide alternative assistance
+      setTimeout(() => {
+        setIsTyping(true);
+        setTimeout(() => {
+          setIsTyping(false);
+          onSendMessage({
+            sender: 'ai',
+            content: 'No problem! How else can I help you? You can also use the "Show All Actions" button to see all available options.'
+          });
+        }, 800);
+      }, 300);
     }
   };
 
@@ -441,6 +521,22 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
                     }`}
                   >
                     <p className={`text-sm whitespace-pre-wrap ${message.isHumanChatMessage ? 'font-semibold' : ''}`}>{message.content}</p>
+                    {message.requiresConfirmation && (
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => handleConfirmTool(message.id)}
+                          className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-xs transition-colors"
+                        >
+                          Yes, proceed
+                        </button>
+                        <button
+                          onClick={() => handleCancelTool(message.id)}
+                          className="flex-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium text-xs transition-colors"
+                        >
+                          No, cancel
+                        </button>
+                      </div>
+                    )}
                     {message.showButtonPreview && (
                       <div className="mt-3 flex flex-col items-center gap-2">
                         <div className="opacity-50 scale-75 origin-center">
