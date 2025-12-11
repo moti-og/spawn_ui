@@ -1,6 +1,6 @@
 export const cannedResponses = {
   approval: {
-    keywords: ['approve', 'approval', 'approved', 'who needs to sign', 'who has approved', 'approval status'],
+    keywords: ['approve', 'approval', 'approvals', 'approved', 'who needs to sign', 'who has approved', 'approval status'],
     response: "Here's the current approval status for this agreement. The document requires approval from Legal, Finance, and the Executive team.",
     spawnComponent: 'ApprovalWorkflow'
   },
@@ -35,6 +35,21 @@ export const cannedResponses = {
     keywords: ['version', 'history', 'previous', 'versions', 'revision', 'revisions', 'show version history'],
     response: "Here's the complete version history for this document. You can click any version to view or restore it.",
     spawnComponent: 'VersionHistory'
+  },
+  checkin: {
+    keywords: ['check in', 'check-in', 'checkin'],
+    response: '✅ Document checked in! The document is now available for others to edit.',
+    actionType: 'checkin'
+  },
+  checkout: {
+    keywords: ['check out', 'check-out', 'checkout'],
+    response: '✅ Document checked out! You now have exclusive edit access. Others will see that you have the document checked out.',
+    actionType: 'checkout'
+  },
+  humanchat: {
+    keywords: ['chat with human', 'talk to human', 'human agent', 'speak with human', 'connect with human'],
+    response: "I'm connecting you with a human agent. Please wait...",
+    actionType: 'humanchat'
   }
 };
 
@@ -52,8 +67,21 @@ export function matchQuery(query) {
   
   for (const [key, config] of Object.entries(cannedResponses)) {
     for (const keyword of config.keywords) {
-      if (lowerQuery.includes(keyword.toLowerCase())) {
-        return { ...config, type: key };
+      const lowerKeyword = keyword.toLowerCase();
+      
+      // For single-word keywords: match as complete word (word boundaries)
+      // For multi-word keywords: match as complete phrase
+      if (lowerKeyword.split(' ').length === 1) {
+        // Single word: use word boundary matching
+        const wordBoundaryRegex = new RegExp(`\\b${lowerKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        if (wordBoundaryRegex.test(lowerQuery)) {
+          return { ...config, type: key };
+        }
+      } else {
+        // Multi-word phrase: match as complete phrase within query
+        if (lowerQuery.includes(lowerKeyword)) {
+          return { ...config, type: key };
+        }
       }
     }
   }

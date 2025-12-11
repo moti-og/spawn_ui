@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, CheckSquare, AlertTriangle, PenTool, LogIn, LogOut, Grid, History, ArrowUp, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { matchQuery } from '../../data/cannedResponses';
+import { matchQuery, cannedResponses } from '../../data/cannedResponses';
 import { getRandomDadJoke } from '../../data/dadJokes';
 
 function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly = false, messagesOnly = false, inputOnly = false, isCheckedIn = false, isHumanChat = false, humanChatName = null, activeComponent = null, onCheckInOut, onToggleHumanChat }) {
@@ -84,24 +84,49 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
   }, [actionsOnly, isHumanChat]);
 
   const handleQuickAction = (actionType) => {
-    let userMessage = '';
-    
+    // Button clicks directly trigger UI changes (no confirmation)
     switch(actionType) {
       case 'approval':
-        userMessage = 'Who has approved so far?';
-        break;
+        onSendMessage({ sender: 'user', content: 'Who has approved so far?' });
+        setTimeout(() => {
+          onSpawnComponent('ApprovalWorkflow');
+        }, 300);
+        return;
       case 'risk':
-        userMessage = 'What is high risk in the indemnification clause?';
-        break;
+        onSendMessage({ sender: 'user', content: 'What is high risk in the indemnification clause?' });
+        setTimeout(() => {
+          onSpawnComponent('RiskAnalysisReport');
+        }, 300);
+        return;
       case 'signature':
-        userMessage = "I'm ready to sign";
-        break;
-      case 'checkin':
-        userMessage = isCheckedIn ? 'check in' : 'check out';
-        break;
+        onSendMessage({ sender: 'user', content: "I'm ready to sign" });
+        setTimeout(() => {
+          onSpawnComponent('SignatureWizard');
+        }, 300);
+        return;
       case 'versionhistory':
-        userMessage = 'Show version history';
-        break;
+        onSendMessage({ sender: 'user', content: 'Show version history' });
+        setTimeout(() => {
+          onSpawnComponent('VersionHistory');
+        }, 300);
+        return;
+      case 'checkin':
+        // Check in/out is handled directly
+        if (onCheckInOut) {
+          const newCheckedInState = !isCheckedIn;
+          onCheckInOut(newCheckedInState);
+          const userMessage = newCheckedInState ? 'check out' : 'check in';
+          onSendMessage({ sender: 'user', content: userMessage });
+          setTimeout(() => {
+            onSendMessage({
+              sender: 'ai',
+              content: newCheckedInState 
+                ? '✅ Document checked out! You now have exclusive edit access. Others will see that you have the document checked out.'
+                : '✅ Document checked in! The document is now available for others to edit.'
+            });
+          }, 500);
+        }
+        return;
       case 'humanchat':
         // Toggle human chat state
         if (onToggleHumanChat) {
@@ -133,8 +158,6 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
         onSpawnComponent('AllActions');
         return;
     }
-
-    handleSendMessage(userMessage);
   };
 
   const handleSendMessage = (messageText = inputValue) => {
@@ -153,46 +176,7 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
       return;
     }
     
-    // Check if user wants to check out (lock the document)
-    if (lowerMessage === 'check out' || lowerMessage === 'check-out' || lowerMessage === 'checkout') {
-      if (onCheckInOut) {
-        onCheckInOut(true);
-        onSendMessage({
-          sender: 'user',
-          content: messageText
-        });
-        setInputValue('');
-        setIsTyping(true);
-        setTimeout(() => {
-          setIsTyping(false);
-          onSendMessage({
-            sender: 'ai',
-            content: '✅ Document checked out! You now have exclusive edit access. Others will see that you have the document checked out.'
-          });
-        }, 800);
-        return;
-      }
-    } 
-    // Check if user wants to check in (release the document)
-    else if (lowerMessage === 'check in' || lowerMessage === 'check-in' || lowerMessage === 'checkin') {
-      if (onCheckInOut) {
-        onCheckInOut(false);
-        onSendMessage({
-          sender: 'user',
-          content: messageText
-        });
-        setInputValue('');
-        setIsTyping(true);
-        setTimeout(() => {
-          setIsTyping(false);
-          onSendMessage({
-            sender: 'ai',
-            content: '✅ Document checked in! The document is now available for others to edit.'
-          });
-        }, 800);
-        return;
-      }
-    }
+    // Check in/out and human chat now go through keyword matching for confirmation
 
     // Close any dynamic UI to show chat FIRST
     onSpawnComponent(null);
@@ -232,60 +216,70 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
           }, 800);
         }, 500);
       } else {
-        // Regular AI response
-        onSendMessage({
-          sender: 'ai',
-          content: match.response,
-          showButtonPreview: match.showButtonPreview || false
-        });
+        // Regular AI response - but skip if we need confirmation (will show confirmation instead)
+        if (!match.spawnComponent && !match.actionType) {
+          onSendMessage({
+            sender: 'ai',
+            content: match.response,
+            showButtonPreview: match.showButtonPreview || false
+          });
 
-        // If it's a default response, send a joke in a second message
-        if (match.includeJoke) {
-          setTimeout(() => {
-            setIsTyping(true);
+          // If it's a default response, send a joke in a second message
+          if (match.includeJoke) {
             setTimeout(() => {
-              setIsTyping(false);
-              onSendMessage({
-                sender: 'ai',
-                content: `But in the meantime...let's have some fun!\n\n${getRandomDadJoke()}`
-              });
-            }, 800);
-          }, 500);
+              setIsTyping(true);
+              setTimeout(() => {
+                setIsTyping(false);
+                onSendMessage({
+                  sender: 'ai',
+                  content: `But in the meantime...let's have some fun!\n\n${getRandomDadJoke()}`
+                });
+              }, 800);
+            }, 500);
+          }
         }
+      }
 
-        // Intelligent routing: Show confirmation before activating tools
-        if (match.spawnComponent) {
-          // Store pending action and show confirmation
-          const toolNames = {
-            'ApprovalWorkflow': 'show the approval status',
-            'RiskAnalysisReport': 'analyze risks in the document',
-            'SignatureWizard': 'add signature blocks',
-            'VersionHistory': 'show version history'
-          };
-          const toolName = toolNames[match.spawnComponent] || 'perform this action';
-          
+      // Intelligent routing: Show confirmation before activating tools
+      // This applies to ALL keyword matches (AI or human chat) that have a spawnComponent or actionType
+      if (match.spawnComponent || match.actionType) {
+        // Store pending action and show confirmation
+        const toolNames = {
+          'ApprovalWorkflow': 'show the approval status',
+          'RiskAnalysisReport': 'analyze risks in the document',
+          'SignatureWizard': 'add signature blocks',
+          'VersionHistory': 'show version history',
+          'checkin': 'check in the document',
+          'checkout': 'check out the document',
+          'humanchat': 'connect you with a human agent'
+        };
+        const actionKey = match.spawnComponent || match.actionType;
+        const toolName = toolNames[actionKey] || 'perform this action';
+        
+        setTimeout(() => {
+          setIsTyping(true);
           setTimeout(() => {
-            setIsTyping(true);
-            setTimeout(() => {
-              setIsTyping(false);
-              setPendingToolAction({
-                component: match.spawnComponent,
-                response: match.response
-              });
-              onSendMessage({
-                sender: 'ai',
-                content: `I can help you ${toolName}. Would you like me to proceed?`,
-                requiresConfirmation: true,
-                pendingAction: match.spawnComponent
-              });
-            }, 800);
-          }, 500);
-        } else if (match.highlightSection) {
-          // Just highlight a section without spawning a component
-          setTimeout(() => {
-            onSpawnComponent('Highlight', { sectionId: match.highlightSection });
-          }, 300);
-        }
+            setIsTyping(false);
+            setPendingToolAction({
+              component: match.spawnComponent,
+              actionType: match.actionType,
+              response: match.response
+            });
+            onSendMessage({
+              sender: 'ai',
+              content: `I can help you ${toolName}. Would you like me to proceed?`,
+              requiresConfirmation: true,
+              pendingAction: actionKey,
+              pendingActionType: match.actionType,
+              pendingActionResponse: match.response
+            });
+          }, 800);
+        }, 500);
+      } else if (match.highlightSection) {
+        // Just highlight a section without spawning a component
+        setTimeout(() => {
+          onSpawnComponent('Highlight', { sectionId: match.highlightSection });
+        }, 300);
       }
     }, 1000 + Math.random() * 500);
   };
@@ -300,7 +294,11 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
   const handleConfirmTool = (messageId) => {
     // Find the message with the pending action
     const message = messages.find(m => m.id === messageId && m.requiresConfirmation);
-    if (message && message.pendingAction && pendingToolAction) {
+    if (message && message.pendingAction) {
+      const actionKey = message.pendingAction;
+      const actionType = message.pendingActionType;
+      const response = message.pendingActionResponse || 'Activating...';
+      
       // Clear pending action
       setPendingToolAction(null);
       
@@ -310,18 +308,58 @@ function ChatInterface({ messages, onSendMessage, onSpawnComponent, actionsOnly 
         content: 'Yes, proceed'
       });
       
-      // Activate the tool
-      setTimeout(() => {
-        setIsTyping(true);
+      // Handle different action types
+      if (actionType === 'checkin') {
+        // Check in the document
+        if (onCheckInOut) {
+          onCheckInOut(false);
+          setTimeout(() => {
+            setIsTyping(true);
+            setTimeout(() => {
+              setIsTyping(false);
+              onSendMessage({
+                sender: 'ai',
+                content: response
+              });
+            }, 800);
+          }, 300);
+        }
+      } else if (actionType === 'checkout') {
+        // Check out the document
+        if (onCheckInOut) {
+          onCheckInOut(true);
+          setTimeout(() => {
+            setIsTyping(true);
+            setTimeout(() => {
+              setIsTyping(false);
+              onSendMessage({
+                sender: 'ai',
+                content: response
+              });
+            }, 800);
+          }, 300);
+        }
+      } else if (actionType === 'humanchat') {
+        // Toggle to human chat
+        if (onToggleHumanChat) {
+          onToggleHumanChat(true);
+          pendingHumanChatActivation.current = true;
+          // The useEffect will handle sending messages when name is available
+        }
+      } else {
+        // Regular component spawn
         setTimeout(() => {
-          setIsTyping(false);
-          onSendMessage({
-            sender: 'ai',
-            content: pendingToolAction.response || 'Activating...'
-          });
-          onSpawnComponent(pendingToolAction.component);
-        }, 800);
-      }, 300);
+          setIsTyping(true);
+          setTimeout(() => {
+            setIsTyping(false);
+            onSendMessage({
+              sender: 'ai',
+              content: response
+            });
+            onSpawnComponent(actionKey);
+          }, 800);
+        }, 300);
+      }
     }
   };
 
